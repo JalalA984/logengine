@@ -1,0 +1,28 @@
+name: Go CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Download dependencies
+        run: go mod download
+
+      # If you need protobufs in CI, this is where we install protoc
+
+      - name: Run tests
+        run: make test
