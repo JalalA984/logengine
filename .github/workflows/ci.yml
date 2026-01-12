@@ -22,7 +22,11 @@ jobs:
       - name: Download dependencies
         run: go mod download
 
-      # If you need protobufs in CI, this is where we install protoc
+      - name: Install protoc
+        run: sudo apt-get install -y protobuf-compiler
+
+      - name: Generate protobufs
+        run: make compile
 
       - name: Run tests
         run: make test
