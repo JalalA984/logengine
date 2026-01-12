@@ -1,6 +1,8 @@
 /api/v1/*.pb.go
-/.proglog/*
 
 *.pem
 *.key
 *.csr
+
+cfssl
+cfssljson

@@ -1,12 +1,12 @@
-CONFIG_PATH=${HOME}/.proglog/
+CONFIG_PATH=${HOME}/.logengine/
 
 .PHONY: init
 init:
 	mkdir -p ${CONFIG_PATH}
 
-
 .PHONY: gencert
 gencert:
+	
 	cfssl gencert \
 		-initca test/ca-csr.json | cfssljson -bare ca
 
@@ -43,3 +43,8 @@ fmt:
 .PHONY: test
 test:
 	go test -race ./...
+
+	
+.PHONY: clean
+clean:
+	rm -rf ${CONFIG_PATH}

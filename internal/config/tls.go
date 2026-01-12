@@ -1,11 +1,10 @@
 package config
 
 import (
-	"os"
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	
+	"os"
 )
 
 type TLSConfig struct {
