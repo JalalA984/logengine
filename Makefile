@@ -72,8 +72,11 @@ $(CONFIG_PATH)/policy.csv:
 .PHONY: test
 test: $(CONFIG_PATH)/policy.csv $(CONFIG_PATH)/model.conf
 	go test -race ./...
+	cd internal/server && go test -v -debug=true
 
 	
 .PHONY: clean
 clean:
 	rm -rf ${CONFIG_PATH}
+	rm -f /tmp/metrics-*.log
+	rm -f /tmp/traces-*.log
