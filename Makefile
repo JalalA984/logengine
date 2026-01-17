@@ -72,7 +72,7 @@ $(CONFIG_PATH)/policy.csv:
 .PHONY: test
 test: $(CONFIG_PATH)/policy.csv $(CONFIG_PATH)/model.conf
 	go test -race ./...
-	cd internal/server && go test -v -debug=true
+# 	cd internal/server && go test -v -debug=true
 
 	
 .PHONY: clean
