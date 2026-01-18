@@ -66,12 +66,7 @@ func New(config Config) (*Agent, error) {
 		Config:    config,
 		shutdowns: make(chan struct{}),
 	}
-	logger, err := zap.NewProduction()
-	if err != nil {
-		return nil, err
-	}
-	zap.ReplaceGlobals(logger)
-	setup := []func() error {
+	setup := []func() error{
 		a.setupLogger,
 		a.setupMux,
 		a.setupLog,
@@ -140,14 +135,16 @@ func (a *Agent) setupLog() error {
 	return err
 }
 
+
 func (a *Agent) setupServer() error {
 	authorizer := auth.New(
 		a.Config.ACLModelFile,
 		a.Config.ACLPolicyFile,
 	)
 	serverConfig := &server.Config{
-		CommitLog:  a.log,
-		Authorizer: authorizer,
+		CommitLog:   a.log,
+		Authorizer:  authorizer,
+		GetServerer: a.log,
 	}
 	var opts []grpc.ServerOption
 	if a.Config.ServerTLSConfig != nil {
@@ -167,7 +164,6 @@ func (a *Agent) setupServer() error {
 	}()
 	return err
 }
-
 
 func (a *Agent) setupMembership() error {
 	rpcAddr, err := a.Config.RPCAddr()
