@@ -9,9 +9,9 @@ import (
 	"sync"
 	"time"
 
-	"go.uber.org/zap"
 	"github.com/hashicorp/raft"
 	"github.com/soheilhy/cmux"
+	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 
@@ -24,19 +24,14 @@ import (
 type Config struct {
 	ServerTLSConfig *tls.Config
 	PeerTLSConfig   *tls.Config
-	// DataDir stores the log and raft data.
-	DataDir string
-	// BindAddr is the address serf runs on.
-	BindAddr string
-	// RPCPort is the port for client (and Raft) connections.
-	RPCPort int
-	// Raft server id.
-	NodeName string
-	// Bootstrap should be set to true when starting the first node of the cluster.
-	StartJoinAddrs []string
-	ACLModelFile   string
-	ACLPolicyFile  string
-	Bootstrap bool
+	DataDir         string
+	BindAddr        string
+	RPCPort         int
+	NodeName        string
+	StartJoinAddrs  []string
+	ACLModelFile    string
+	ACLPolicyFile   string
+	Bootstrap       bool
 }
 
 func (c Config) RPCAddr() (string, error) {
@@ -59,7 +54,6 @@ type Agent struct {
 	shutdowns    chan struct{}
 	shutdownLock sync.Mutex
 }
-
 
 func New(config Config) (*Agent, error) {
 	a := &Agent{
@@ -92,10 +86,9 @@ func (a *Agent) setupLogger() error {
 }
 
 func (a *Agent) setupMux() error {
-	rpcAddr := fmt.Sprintf(
-		":%d",
-		a.Config.RPCPort,
-	)
+	// Binding to all interfaces (":PORT") allows 127.0.0.1 (probes) 
+	// and Pod IP (Raft/Serf) to work simultaneously.
+	rpcAddr := fmt.Sprintf(":%d", a.Config.RPCPort)
 	ln, err := net.Listen("tcp", rpcAddr)
 	if err != nil {
 		return err
@@ -103,7 +96,6 @@ func (a *Agent) setupMux() error {
 	a.mux = cmux.New(ln)
 	return nil
 }
-
 
 func (a *Agent) setupLog() error {
 	raftLn := a.mux.Match(func(reader io.Reader) bool {
@@ -119,9 +111,13 @@ func (a *Agent) setupLog() error {
 		a.Config.ServerTLSConfig,
 		a.Config.PeerTLSConfig,
 	)
+	rpcAddr, err := a.Config.RPCAddr()
+	if err != nil {
+		return err
+	}
+	logConfig.Raft.BindAddr = rpcAddr
 	logConfig.Raft.LocalID = raft.ServerID(a.Config.NodeName)
 	logConfig.Raft.Bootstrap = a.Config.Bootstrap
-	var err error
 	a.log, err = log.NewDistributedLog(
 		a.Config.DataDir,
 		logConfig,
@@ -134,7 +130,6 @@ func (a *Agent) setupLog() error {
 	}
 	return err
 }
-
 
 func (a *Agent) setupServer() error {
 	authorizer := auth.New(
@@ -181,7 +176,6 @@ func (a *Agent) setupMembership() error {
 	return err
 }
 
-
 func (a *Agent) serve() error {
 	if err := a.mux.Serve(); err != nil {
 		_ = a.Shutdown()
@@ -189,7 +183,6 @@ func (a *Agent) serve() error {
 	}
 	return nil
 }
-
 
 func (a *Agent) Shutdown() error {
 	a.shutdownLock.Lock()

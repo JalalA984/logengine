@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "logengine.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels: {{ include "logengine.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels: {{ include "logengine.selectorLabels" . | nindent 6 }}
+  serviceName: {{ include "logengine.fullname" . }}
+  replicas: {{ .Values.replicas }}
+  template:
+    metadata:
+      name: {{ include "logengine.fullname" . }}
+      labels: {{ include "logengine.labels" . | nindent 8 }}
+    spec:
+      initContainers:
+      - name: {{ include "logengine.fullname" . }}-config-init
+        image: busybox
+        imagePullPolicy: IfNotPresent
+        command:
+          - /bin/sh
+          - -c
+          - |-
+            ID=$(echo $HOSTNAME | rev | cut -d- -f1 | rev)
+            cat > /var/run/logengine/config.yaml <<EOD
+            data-dir: /var/run/logengine/data
+            rpc-port: {{ .Values.rpcPort }}
+            bind-addr: "$HOSTNAME.logengine.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.serfPort }}"
+            bootstrap: $([ $ID = 0 ] && echo true || echo false)
+            $([ $ID != 0 ] && echo "start-join-addrs: \"logengine-0.logengine.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.serfPort }}\"")
+            EOD
+        volumeMounts:
+        - name: datadir
+          mountPath: /var/run/logengine
+      containers:
+      - name: {{ include "logengine.fullname" . }}
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        ports:
+        - containerPort: {{ .Values.rpcPort }}
+          name: rpc
+        - containerPort: {{ .Values.serfPort }}
+          name: serf
+        args:
+          - --config-file=/var/run/logengine/config.yaml
+        readinessProbe:
+          exec:
+            command: ["/bin/grpc_health_probe", "-addr=:{{ .Values.rpcPort }}"]
+          initialDelaySeconds: 10
+          timeoutSeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          exec:
+            command: ["/bin/grpc_health_probe", "-addr=:{{ .Values.rpcPort }}"]
+          initialDelaySeconds: 10
+          timeoutSeconds: 5
+          periodSeconds: 10
+        volumeMounts:
+        - name: datadir
+          mountPath: /var/run/logengine
+  volumeClaimTemplates:
+  - metadata:
+      name: datadir
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: {{ .Values.storage }}

@@ -55,7 +55,7 @@ compile:
 
 .PHONY: run
 run:
-	go run cmd/server/main.go
+	go run cmd/getservers/main.go
 
 
 .PHONY: fmt
@@ -80,3 +80,20 @@ clean:
 	rm -rf ${CONFIG_PATH}
 	rm -f /tmp/metrics-*.log
 	rm -f /tmp/traces-*.log
+
+
+TAG ?= 0.0.1
+build-docker:
+	docker build -t github.com/jalala984/logengine:$(TAG) .
+
+kind:
+	kind load docker-image github.com/jalala984/logengine:0.0.1
+
+helmunin:
+	helm uninstall logengine
+
+helmin:
+	helm install logengine deploy/logengine
+
+port:
+	kubectl port-forward pod/logengine-0 18000:8400
